@@ -1,0 +1,29 @@
+#!/bin/bash
+DATETIME=`date +%Y%m%d-%H_%M_%S`
+HOUR=`date +%H`
+FOLDER=`date +%Y/%m/%d`
+
+# backup2spaces mongo [bucket] [database]
+# backup2spaces mysql [bucket] [database]
+# backup2spaces files [bucket] [filename] [directory]
+
+case $1 in
+    mongo)
+        mongodump --gzip --db $3 --archive=/tmp/$3-$DATETIME.gz
+        s3cmd put /tmp/$3-$DATETIME.gz s3://$2/$FOLDER/
+        rm /tmp/$3-$DATETIME.gz
+        ;;
+    mysql)
+        mysqldump -u root -p"root" --events --routines --triggers --add-drop-database --databases $3 -v | gzip > /tmp/$3-$DATETIME.sql.gz
+        s3cmd put /tmp/$3-$DATETIME.sql.gz s3://$2/$FOLDER/
+        rm /tmp/$3-$DATETIME.sql.gz
+        ;;
+    files)
+        tar -czvf /tmp/$3-$DATETIME.tar.gz $4
+        s3cmd put /tmp/$3-$DATETIME.tar.gz s3://$2/$FOLDER/
+        rm /tmp/$3-$DATETIME.tar.gz
+        ;;
+    *)
+        exit 1
+        ;;
+esac
